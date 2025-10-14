@@ -12,7 +12,7 @@
   <script>
     // === CONFIG ===
     const HASURA_ENDPOINT = "https://gatewayadventureapp.hasura.app/v1/graphql"; // 🔹 Your Hasura endpoint
-    const HASURA_ROLE = "guest"; // 🔹 Use guest role, no admin secret
+    const HASURA_ROLE = "Guest"; // 🔹 Use guest role, no admin secret
 
     async function sendCodeToHasura(authCode) {
       const mutation = `
