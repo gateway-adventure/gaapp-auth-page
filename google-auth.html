@@ -11,33 +11,31 @@
 
   <script>
     // === CONFIG ===
-    const HASURA_ENDPOINT = "https://gatewayadventureapp.hasura.app/v1/graphql"; // 🔹 Your Hasura endpoint
-    const HASURA_ROLE = "Guest"; // 🔹 Use guest role, no admin secret
+    const HASURA_ENDPOINT = "https://gatewayadventureapp.hasura.app/v1/graphql"; // your Hasura endpoint
+    const HASURA_ROLE = "Guest"; // Use the exact role name configured in Hasura
 
     async function sendCodeToHasura(authCode) {
       const mutation = `
         mutation InsertCode {
-          insert_google_codes_one(object: { code: "${authCode}" }) {
-            code
+          insert_google_codes(objects: { code: "${authCode}" }) {
+            returning {
+              code
+            }
           }
         }
       `;
 
-      try {
-        const response = await fetch(HASURA_ENDPOINT, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-hasura-role": HASURA_ROLE
-          },
-          body: JSON.stringify({ query: mutation })
-        });
+      const response = await fetch(HASURA_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-hasura-role": HASURA_ROLE
+        },
+        body: JSON.stringify({ query: mutation })
+      });
 
-        const data = await response.json();
-        return data;
-      } catch (err) {
-        throw new Error("Network or CORS error: " + err.message);
-      }
+      const data = await response.json();
+      return data;
     }
 
     async function main() {
@@ -53,16 +51,16 @@
       try {
         status.textContent = "🔄 Sending code to Hasura...";
         const result = await sendCodeToHasura(code);
+        console.log(result);
 
         if (result.errors) {
           status.textContent = "❌ Error sending code:\n" + JSON.stringify(result.errors, null, 2);
         } else {
           status.textContent = "✅ Login complete! You can close this tab.";
-          console.log("Code sent successfully:", result);
         }
       } catch (err) {
         console.error(err);
-        status.textContent = "❌ " + err.message;
+        status.textContent = "❌ Network or CORS error.\n" + err.message;
       }
     }
 
@@ -71,7 +69,3 @@
 </body>
 </html>
 
-    main();
-  </script>
-</body>
-</html>
