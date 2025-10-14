@@ -1,24 +1,28 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Unity Google Login</title>
+  <title>Google Login Page</title>
 </head>
 <body>
 <script>
-  // Extract ?code= from URL
+  // Parse ?code= from URL
   const params = new URLSearchParams(window.location.search);
   const code = params.get('code');
 
   if (code) {
-    // For WebGL builds
+    document.body.innerHTML = "✅ Login successful! Sending code to Unity...";
+
+    // 1️⃣ If this runs in WebGL (Unity embedded webpage)
     if (window.unityInstance) {
       window.unityInstance.SendMessage('Scene Manager', 'ExchangeCodeForTokens', code);
     }
 
-    // For Android/iOS builds (deep link)
-    window.location.href = "com.gatewayadventure.gaapp:/oauth2redirect?code=" + code;
-
-    document.body.innerHTML = "✅ Login complete! You can return to the app.";
+    // 2️⃣ If this runs in mobile browser (redirect)
+    else {
+      // Use a web request to your local web listener (Option 2)
+      // OR redirect to a custom URL that Unity handles (Option 3)
+      window.location.href = "com.gatewayadventure.gaapp:/oauth2redirect?code=" + code;
+    }
   } else {
     document.body.innerHTML = "❌ No code found in URL.";
   }
