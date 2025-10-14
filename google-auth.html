@@ -34,8 +34,8 @@
     const code = params.get("code");
 
     // 2️⃣ Hasura endpoint + admin secret (replace with yours)
-    const HASURA_URL = "https://YOUR-HASURA-ENDPOINT/v1/graphql";
-    const HASURA_ADMIN_SECRET = "YOUR-ADMIN-SECRET";
+    const HASURA_URL = "https://your-hasura-endpoint.com/v1/graphql";
+    const HASURA_ADMIN_SECRET = "jQIjv3ncSK24JRU2KIwROjd1m2yOxBHu44EMbJiYP31OCzwanMv6GCNUZFvH79Di";
 
     async function sendCodeToHasura() {
       if (!code) {
