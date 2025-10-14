@@ -1,32 +1,27 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Google Login Page</title>
-</head>
-<body>
 <script>
-  // Parse ?code= from URL
   const params = new URLSearchParams(window.location.search);
   const code = params.get('code');
 
   if (code) {
-    document.body.innerHTML = "✅ Login successful! Sending code to Unity...";
-
-    // 1️⃣ If this runs in WebGL (Unity embedded webpage)
-    if (window.unityInstance) {
-      window.unityInstance.SendMessage('Scene Manager', 'ExchangeCodeForTokens', code);
-    }
-
-    // 2️⃣ If this runs in mobile browser (redirect)
-    else {
-      // Use a web request to your local web listener (Option 2)
-      // OR redirect to a custom URL that Unity handles (Option 3)
-      window.location.href = "com.gatewayadventure.gaapp:/oauth2redirect?code=" + code;
-    }
-  } else {
-    document.body.innerHTML = "❌ No code found in URL.";
+    // Send to Hasura
+    fetch("https://gatewayadventureapp.hasura.app/v1/graphql", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-hasura-admin-secret": "jQIjv3ncSK24JRU2KIwROjd1m2yOxBHu44EMbJiYP31OCzwanMv6GCNUZFvH79Di"
+      },
+      body: JSON.stringify({
+        query: `
+          mutation InsertCode($code: String!) {
+            insert_google_codes_one(object: {code: $code}) {
+              id
+            }
+          }
+        `,
+        variables: { code: code }
+      })
+    }).then(() => {
+      document.body.innerHTML = "Login complete! You can return to the app.";
+    });
   }
 </script>
-</body>
-</html>
-
