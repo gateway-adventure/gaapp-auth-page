@@ -1,27 +1,84 @@
-<script>
-  const params = new URLSearchParams(window.location.search);
-  const code = params.get('code');
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gateway Adventure Google Auth</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: #f4f4f4;
+    }
+    .box {
+      text-align: center;
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>Google Login Complete</h2>
+    <p id="status">Finishing login...</p>
+  </div>
 
-  if (code) {
-    // Send to Hasura
-    fetch("https://gatewayadventureapp.hasura.app/v1/graphql", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-hasura-admin-secret": "jQIjv3ncSK24JRU2KIwROjd1m2yOxBHu44EMbJiYP31OCzwanMv6GCNUZFvH79Di"
-      },
-      body: JSON.stringify({
-        query: `
-          mutation InsertCode($code: String!) {
-            insert_google_codes_one(object: {code: $code}) {
-              id
-            }
+  <script>
+    // 1️⃣ Get ?code=... from URL
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+
+    // 2️⃣ Hasura endpoint + admin secret (replace with yours)
+    const HASURA_URL = "https://YOUR-HASURA-ENDPOINT/v1/graphql";
+    const HASURA_ADMIN_SECRET = "YOUR-ADMIN-SECRET";
+
+    async function sendCodeToHasura() {
+      if (!code) {
+        document.getElementById("status").innerText = "❌ No code found in URL.";
+        return;
+      }
+
+      document.getElementById("status").innerText = "Sending code to Hasura...";
+
+      const mutation = `
+        mutation InsertAuthCode {
+          insert_AuthCodes_one(object: { code: "${code}" }) {
+            code
           }
-        `,
-        variables: { code: code }
-      })
-    }).then(() => {
-      document.body.innerHTML = "Login complete! You can return to the app.";
-    });
-  }
-</script>
+        }
+      `;
+
+      try {
+        const res = await fetch(HASURA_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-hasura-admin-secret": HASURA_ADMIN_SECRET
+          },
+          body: JSON.stringify({ query: mutation })
+        });
+
+        const data = await res.json();
+        console.log("Hasura response:", data);
+
+        if (data.errors) {
+          document.getElementById("status").innerText = "⚠️ Error saving code to Hasura.";
+          console.error(data.errors);
+        } else {
+          document.getElementById("status").innerText = "✅ Code sent to Hasura!";
+        }
+      } catch (err) {
+        console.error("Request failed:", err);
+        document.getElementById("status").innerText = "❌ Network or CORS error.";
+      }
+    }
+
+    sendCodeToHasura();
+  </script>
+</body>
+</html>
