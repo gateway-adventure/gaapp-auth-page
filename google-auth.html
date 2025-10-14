@@ -3,83 +3,66 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gateway Adventure Google Auth</title>
-  <style>
-    body {
-      font-family: system-ui, sans-serif;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      background: #f4f4f4;
-    }
-    .box {
-      text-align: center;
-      background: white;
-      padding: 2rem;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-  </style>
+  <title>Google Login Complete</title>
 </head>
 <body>
-  <div class="box">
-    <h2>Google Login Complete</h2>
-    <p id="status">Finishing login...</p>
-  </div>
+  <h2>Completing Google Login...</h2>
+  <pre id="status">Waiting...</pre>
 
   <script>
-    // 1️⃣ Get ?code=... from URL
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get("code");
+    // === CONFIG ===
+    const HASURA_ENDPOINT = "https://YOUR-HASURA-PROJECT.hasura.app/v1/graphql"; // 🔹 Replace with your Hasura endpoint
+    const HASURA_ADMIN_SECRET = "jQIjv3ncSK24JRU2KIwROjd1m2yOxBHu44EMbJiYP31OCzwanMv6GCNUZFvH79Di"; // 🔹 your Hasura secret
 
-    // 2️⃣ Hasura endpoint + admin secret (replace with yours)
-    const HASURA_URL = "https://your-hasura-endpoint.com/v1/graphql";
-    const HASURA_ADMIN_SECRET = "jQIjv3ncSK24JRU2KIwROjd1m2yOxBHu44EMbJiYP31OCzwanMv6GCNUZFvH79Di";
-
-    async function sendCodeToHasura() {
-      if (!code) {
-        document.getElementById("status").innerText = "❌ No code found in URL.";
-        return;
-      }
-
-      document.getElementById("status").innerText = "Sending code to Hasura...";
-
+    async function sendCodeToHasura(authCode) {
       const mutation = `
-        mutation InsertAuthCode {
-          insert_AuthCodes_one(object: { code: "${code}" }) {
+        mutation InsertCode {
+          insert_google_codes_one(object: { code: "${authCode}" }) {
             code
           }
         }
       `;
 
+      const response = await fetch(HASURA_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-hasura-admin-secret": HASURA_ADMIN_SECRET
+        },
+        body: JSON.stringify({ query: mutation })
+      });
+
+      const data = await response.json();
+      return data;
+    }
+
+    async function main() {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get("code");
+      const status = document.getElementById("status");
+
+      if (!code) {
+        status.textContent = "❌ No code found in URL.";
+        return;
+      }
+
       try {
-        const res = await fetch(HASURA_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-hasura-admin-secret": HASURA_ADMIN_SECRET
-          },
-          body: JSON.stringify({ query: mutation })
-        });
+        status.textContent = "🔄 Sending code to Hasura...";
+        const result = await sendCodeToHasura(code);
+        console.log(result);
 
-        const data = await res.json();
-        console.log("Hasura response:", data);
-
-        if (data.errors) {
-          document.getElementById("status").innerText = "⚠️ Error saving code to Hasura.";
-          console.error(data.errors);
+        if (result.errors) {
+          status.textContent = "❌ Error sending code:\n" + JSON.stringify(result.errors, null, 2);
         } else {
-          document.getElementById("status").innerText = "✅ Code sent to Hasura!";
+          status.textContent = "✅ Login complete! You can close this tab.";
         }
       } catch (err) {
-        console.error("Request failed:", err);
-        document.getElementById("status").innerText = "❌ Network or CORS error.";
+        console.error(err);
+        status.textContent = "❌ Network or CORS error.\n" + err.message;
       }
     }
 
-    sendCodeToHasura();
+    main();
   </script>
 </body>
 </html>
-
