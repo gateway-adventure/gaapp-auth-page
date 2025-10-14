@@ -11,9 +11,9 @@
 
   <script>
     // === CONFIG ===
-    const HASURA_ENDPOINT = "https://gatewayadventureapp.hasura.app/v1/graphql"; // Hasura GraphQL endpoint
+    const HASURA_ENDPOINT = "https://gatewayadventureapp.hasura.app/v1/graphql"; // Hasura endpoint
+    const HASURA_ROLE = "Guest"; // safe, no secret needed
 
-    // Insert the auth code into Hasura using the public role
     async function sendCodeToHasura(authCode) {
       const mutation = `
         mutation InsertCode {
@@ -23,16 +23,21 @@
         }
       `;
 
-      const response = await fetch(HASURA_ENDPOINT, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ query: mutation })
-      });
+      try {
+        const response = await fetch(HASURA_ENDPOINT, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-hasura-role": HASURA_ROLE
+          },
+          body: JSON.stringify({ query: mutation })
+        });
 
-      const data = await response.json();
-      return data;
+        const data = await response.json();
+        return data;
+      } catch (err) {
+        throw err;
+      }
     }
 
     async function main() {
@@ -45,15 +50,16 @@
         return;
       }
 
+      status.textContent = "🔄 Sending code to Hasura...";
+
       try {
-        status.textContent = "🔄 Sending code to Hasura...";
         const result = await sendCodeToHasura(code);
         console.log(result);
 
         if (result.errors) {
           status.textContent = "❌ Error sending code:\n" + JSON.stringify(result.errors, null, 2);
         } else {
-          status.textContent = "✅ Login complete! You can close this tab and return to the app.";
+          status.textContent = "✅ Login complete! You can close this tab.";
         }
       } catch (err) {
         console.error(err);
