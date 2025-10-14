@@ -11,8 +11,9 @@
 
   <script>
     // === CONFIG ===
-    const HASURA_ENDPOINT = "https://gatewayadventure.hasura.app/v1/graphql"; // 🔹 Replace if different
+    const HASURA_ENDPOINT = "https://gatewayadventure.hasura.app/v1/graphql"; // Hasura GraphQL endpoint
 
+    // Insert the auth code into Hasura using the public role
     async function sendCodeToHasura(authCode) {
       const mutation = `
         mutation InsertCode {
@@ -25,8 +26,7 @@
       const response = await fetch(HASURA_ENDPOINT, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "x-hasura-role": "public" // 👈 use public role, not admin
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({ query: mutation })
       });
@@ -53,7 +53,7 @@
         if (result.errors) {
           status.textContent = "❌ Error sending code:\n" + JSON.stringify(result.errors, null, 2);
         } else {
-          status.textContent = "✅ Login complete! You can close this tab.";
+          status.textContent = "✅ Login complete! You can close this tab and return to the app.";
         }
       } catch (err) {
         console.error(err);
@@ -65,4 +65,3 @@
   </script>
 </body>
 </html>
-
