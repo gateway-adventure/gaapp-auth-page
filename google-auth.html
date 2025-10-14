@@ -11,8 +11,7 @@
 
   <script>
     // === CONFIG ===
-    const HASURA_ENDPOINT = "https://gatewayadventure.hasura.app/v1/graphql"; // 🔹 Replace with your Hasura endpoint
-    const HASURA_ADMIN_SECRET = "jQIjv3ncSK24JRU2KIwROjd1m2yOxBHu44EMbJiYP31OCzwanMv6GCNUZFvH79Di"; // 🔹 your Hasura secret
+    const HASURA_ENDPOINT = "https://gatewayadventure.hasura.app/v1/graphql"; // 🔹 Replace if different
 
     async function sendCodeToHasura(authCode) {
       const mutation = `
@@ -27,7 +26,7 @@
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-hasura-admin-secret": HASURA_ADMIN_SECRET
+          "x-hasura-role": "public" // 👈 use public role, not admin
         },
         body: JSON.stringify({ query: mutation })
       });
@@ -66,3 +65,4 @@
   </script>
 </body>
 </html>
+
