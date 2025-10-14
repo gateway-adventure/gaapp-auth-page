@@ -11,8 +11,8 @@
 
   <script>
     // === CONFIG ===
-    const HASURA_ENDPOINT = "https://gatewayadventureapp.hasura.app/v1/graphql"; // Hasura endpoint
-    const HASURA_ROLE = "Guest"; // safe, no secret needed
+    const HASURA_ENDPOINT = "https://gatewayadventureapp.hasura.app/v1/graphql"; // 🔹 Your Hasura endpoint
+    const HASURA_ROLE = "guest"; // 🔹 Use guest role, no admin secret
 
     async function sendCodeToHasura(authCode) {
       const mutation = `
@@ -36,7 +36,7 @@
         const data = await response.json();
         return data;
       } catch (err) {
-        throw err;
+        throw new Error("Network or CORS error: " + err.message);
       }
     }
 
@@ -50,22 +50,26 @@
         return;
       }
 
-      status.textContent = "🔄 Sending code to Hasura...";
-
       try {
+        status.textContent = "🔄 Sending code to Hasura...";
         const result = await sendCodeToHasura(code);
-        console.log(result);
 
         if (result.errors) {
           status.textContent = "❌ Error sending code:\n" + JSON.stringify(result.errors, null, 2);
         } else {
           status.textContent = "✅ Login complete! You can close this tab.";
+          console.log("Code sent successfully:", result);
         }
       } catch (err) {
         console.error(err);
-        status.textContent = "❌ Network or CORS error.\n" + err.message;
+        status.textContent = "❌ " + err.message;
       }
     }
+
+    main();
+  </script>
+</body>
+</html>
 
     main();
   </script>
