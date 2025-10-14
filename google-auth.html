@@ -5,24 +5,24 @@
 </head>
 <body>
 <script>
-  // Get ?code= from URL
+  // Extract ?code= from URL
   const params = new URLSearchParams(window.location.search);
   const code = params.get('code');
 
   if (code) {
-    // For WebGL
+    // For WebGL builds
     if (window.unityInstance) {
-      // Calls Unity method: GoogleDriveAuth.ExchangeCodeForTokens
-      window.unityInstance.SendMessage('YourGameObjectName', 'ExchangeCodeForTokens', code);
+      window.unityInstance.SendMessage('Scene Manager', 'ExchangeCodeForTokens', code);
     }
 
-    // For Android/iOS (deep link)
-    window.location = "com.gatewayadventure.gaapp:/oauth2redirect?code=" + code;
+    // For Android/iOS builds (deep link)
+    window.location.href = "com.gatewayadventure.gaapp:/oauth2redirect?code=" + code;
 
-    document.body.innerHTML = "Login complete! You can return to the app.";
+    document.body.innerHTML = "✅ Login complete! You can return to the app.";
   } else {
-    document.body.innerHTML = "No code found in URL.";
+    document.body.innerHTML = "❌ No code found in URL.";
   }
 </script>
 </body>
 </html>
+
