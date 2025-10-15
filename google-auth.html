@@ -11,73 +11,74 @@
 
   <script>
     // === CONFIG ===
-    const CLIENT_ID = "226868230614-fmancr9ba24802go0e5hgb3ot6qf3g.apps.googleusercontent.com";
+    const HASURA_ENDPOINT = "https://gateway-adventure.hasura.app/v1/graphql"; // Hasura GraphQL endpoint
+    const HASURA_ADMIN_SECRET = "YOUR_HASURA_ADMIN_SECRET"; // replace with your admin secret
+    const GOOGLE_CLIENT_ID = "YOUR_WEB_CLIENT_ID.apps.googleusercontent.com";
     const REDIRECT_URI = "https://gateway-adventure.github.io/gaapp-auth-page/google-auth.html";
-    const SCOPE = "https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/userinfo.email";
 
-    const status = document.getElementById("status");
-
-    // Get UID from URL
+    const statusEl = document.getElementById("status");
     const params = new URLSearchParams(window.location.search);
+
     const uid = params.get("uid");
     const code = params.get("code");
 
     if (!uid) {
-      status.textContent = "❌ Missing UID in URL";
-      throw new Error("Missing UID in URL");
+      statusEl.textContent = "❌ Missing UID in URL";
+      throw new Error("UID missing");
     }
 
-    // If Google redirected back with ?code=..., send to Hasura
-    if (code) {
-      status.textContent = "🔄 Sending code to Hasura...";
-
-      const HASURA_ENDPOINT = "https://gatewayadventureapp.hasura.app/v1/graphql";
-      const mutation = `
-        mutation {
-          insert_google_codes_one(object: { uid: "${uid}", code: "${code}" }) {
-            uid
-            code
-          }
-        }
-      `;
-
-      fetch(HASURA_ENDPOINT, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          // Use a role that can insert anonymously
-          "x-hasura-role": "public"
-        },
-        body: JSON.stringify({ query: mutation })
-      })
-      .then(res => res.json())
-      .then(data => {
-        console.log(data);
-        if (data.errors) {
-          status.textContent = "❌ Error sending code:\n" + JSON.stringify(data.errors, null, 2);
-        } else {
-          status.textContent = "✅ Login complete! You can return to the app.";
-        }
-      })
-      .catch(err => {
-        console.error(err);
-        status.textContent = "❌ Network or CORS error:\n" + err.message;
-      });
-    } else {
-      // Otherwise open Google OAuth page
-      status.textContent = "🌀 Opening Google Login...";
-
-      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth` +
-        `?response_type=code` +
-        `&client_id=${CLIENT_ID}` +
+    // Step 1: If no code yet, open Google OAuth
+    if (!code) {
+      statusEl.textContent = "🌀 Opening Google Login...";
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+        `response_type=code` +
+        `&client_id=${encodeURIComponent(GOOGLE_CLIENT_ID)}` +
         `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
-        `&scope=${encodeURIComponent(SCOPE)}` +
-        `&access_type=offline` +
-        `&prompt=consent`;
+        `&scope=${encodeURIComponent("https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/userinfo.email")}` +
+        `&access_type=offline&prompt=consent`;
+      window.open(authUrl, "_blank");
+    } else {
+      // Step 2: We have ?code=, send to Hasura
+      async function sendCode() {
+        try {
+          statusEl.textContent = "🔄 Sending UID + code to Hasura...";
 
-      // Redirect browser to Google Login
-      window.location.href = authUrl;
+          const mutation = `
+            mutation InsertGoogleCode {
+              insert_google_codes_one(object: { uid: "${uid}", code: "${code}" }) {
+                uid
+                code
+              }
+            }
+          `;
+
+          const res = await fetch(HASURA_ENDPOINT, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-hasura-admin-secret": HASURA_ADMIN_SECRET
+            },
+            body: JSON.stringify({ query: mutation })
+          });
+
+          const data = await res.json();
+
+          if (data.errors) {
+            statusEl.textContent = "❌ Error sending code:\n" + JSON.stringify(data.errors, null, 2);
+            console.error(data.errors);
+          } else {
+            statusEl.textContent = "✅ Google login complete! You can return to Unity.";
+            console.log("Hasura insert result:", data);
+          }
+        } catch (err) {
+          statusEl.textContent = "❌ Network or CORS error.\n" + err.message;
+          console.error(err);
+        }
+      }
+
+      sendCode();
     }
   </script>
 </body>
 </html>
+
