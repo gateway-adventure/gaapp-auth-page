@@ -1,18 +1,23 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Gateway Adventure Auth</title>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gateway Adventure Login</title>
 </head>
 <body>
   <h2>Completing Google Login...</h2>
+  <pre id="status">Loading...</pre>
+
   <script>
+    const HASURA_ENDPOINT = "https://gateway-adventureapp.hasura.app/v1/graphql";
+
     async function sendCodeToHasura(uid, code) {
       const mutation = `
         mutation InsertCode($uid: String!, $code: String!) {
           insert_google_codes_one(
             object: { uid: $uid, code: $code },
-            on_conflict: { constraint: google_codes_pkey, update_columns: [code] }
+            on_conflict: { constraint: google_codes_pkey, update_columns: code }
           ) {
             uid
             code
@@ -20,45 +25,63 @@
         }
       `;
 
-      const response = await fetch("https://gatewayadventureapp.hasura.app/v1/graphql", {
+      const response = await fetch(HASURA_ENDPOINT, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-hasura-role": "Guest"
-        },
-        body: JSON.stringify({
-          query: mutation,
-          variables: { uid, code }
-        })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: mutation, variables: { uid, code } })
       });
 
-      const result = await response.json();
-      console.log("✅ Hasura Response:", result);
-      document.body.innerHTML = "<h3>✅ Login complete! You can return to the app.</h3>";
+      return response.json();
     }
 
     async function main() {
+      const status = document.getElementById("status");
       const params = new URLSearchParams(window.location.search);
       const uid = params.get("uid");
       const code = params.get("code");
 
       if (!uid) {
-        document.body.innerHTML = "<h3>❌ Missing UID in URL</h3>";
+        status.textContent = "❌ Missing UID in URL";
         return;
       }
 
+      // Step 1: If no code yet, redirect to Google OAuth
       if (!code) {
         const clientId = "226868230614-fmancr9ba24802go0e5q3hgb3ot6qf3g.apps.googleusercontent.com";
-        const redirectUri = "https://gateway-adventure.github.io/gaapp-auth-page/google-auth.html?uid=" + encodeURIComponent(uid);
-        const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/userinfo.email&access_type=offline&prompt=consent`;
-        window.location.href = authUrl;
+        const redirectUri = "https://gateway-adventure.github.io/gaapp-auth-page/google-auth.html";
+        const scope = encodeURIComponent("https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/userinfo.email");
+        const oauthUrl =
+          `https://accounts.google.com/o/oauth2/v2/auth?response_type=code` +
+          `&client_id=${clientId}` +
+          `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+          `&scope=${scope}` +
+          `&access_type=offline&prompt=consent&state=${uid}` +
+          `&include_granted_scopes=true`;
+
+        status.textContent = "🔄 Redirecting to Google Sign-In...";
+        window.location.href = oauthUrl;
         return;
       }
 
-      await sendCodeToHasura(uid, code);
+      // Step 2: We have ?code= and ?uid= → send to Hasura
+      try {
+        status.textContent = "📡 Sending code to Hasura...";
+        const result = await sendCodeToHasura(uid, code);
+
+        if (result.errors) {
+          console.error(result.errors);
+          status.textContent = "❌ Error sending code:\n" + JSON.stringify(result.errors, null, 2);
+        } else {
+          status.textContent = "✅ Login complete! You can close this tab.";
+        }
+      } catch (err) {
+        console.error(err);
+        status.textContent = "❌ Network error:\n" + err.message;
+      }
     }
 
     main();
   </script>
 </body>
 </html>
+
