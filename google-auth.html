@@ -1,138 +1,64 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Google Login Complete</title>
-  <style>
-    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding: 24px; background:#f6f7fb; }
-    .card { max-width:720px;margin:24px auto;padding:20px;background:#fff;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.06); }
-    pre { white-space:pre-wrap; word-break:break-word; }
-    button { padding:8px 14px;border-radius:6px;border:0;background:#2563eb;color:white;cursor:pointer; }
-  </style>
+  <title>Gateway Adventure Auth</title>
+  <meta charset="UTF-8">
 </head>
 <body>
-  <div class="card">
-    <h2>Completing Google Login...</h2>
-    <p id="msg">Waiting...</p>
-    <pre id="status"></pre>
-    <div id="actions" style="margin-top:12px"></div>
-  </div>
+  <h2>Completing Google Login...</h2>
+  <script>
+    async function sendCodeToHasura(uid, code) {
+      const mutation = `
+        mutation InsertCode($uid: String!, $code: String!) {
+          insert_google_codes_one(
+            object: { uid: $uid, code: $code },
+            on_conflict: { constraint: google_codes_pkey, update_columns: [code] }
+          ) {
+            uid
+            code
+          }
+        }
+      `;
 
-<script>
-/* CONFIG - set these for your project */
-const WEB_CLIENT_ID = "226868230614-fmancr9ba24802go0e5q3hgb3ot6qf3g.apps.googleusercontent.com"; 
-const REDIRECT_PATH = "/gaapp-auth-page/google-auth.html"; // path under your GitHub Pages site
-const HOSTED_BASE = "https://gateway-adventure.github.io"; // your GitHub Pages origin
-const REDIRECT_URI = HOSTED_BASE + REDIRECT_PATH; // must match Google Console redirect exactly
-const HASURA_ENDPOINT = "https://gatewayadventureapp.hasura.app/v1/graphql"; // your Hasura endpoint
-const HASURA_ROLE = "Guest"; // exact Hasura role name (case-sensitive) that has insert(uid,code) permission
-/* --- end config --- */
+      const response = await fetch("https://gatewayadventureapp.hasura.app/v1/graphql", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-hasura-role": "Guest"
+        },
+        body: JSON.stringify({
+          query: mutation,
+          variables: { uid, code }
+        })
+      });
 
-const statusEl = document.getElementById("status");
-const msgEl = document.getElementById("msg");
-const actionsEl = document.getElementById("actions");
+      const result = await response.json();
+      console.log("✅ Hasura Response:", result);
+      document.body.innerHTML = "<h3>✅ Login complete! You can return to the app.</h3>";
+    }
 
-function setMessage(text){
-  msgEl.textContent = text;
-}
-function logStatus(text){
-  statusEl.textContent = text + "\n" + statusEl.textContent;
-}
+    async function main() {
+      const params = new URLSearchParams(window.location.search);
+      const uid = params.get("uid");
+      const code = params.get("code");
 
-/* Read URL params */
-const params = new URLSearchParams(window.location.search);
-const urlCode = params.get("code");
-const urlState = params.get("state"); // we'll use state to carry uid back from Google
-const urlUid = params.get("uid"); // initial uid param
-
-// Decide uid: prefer state (returned by Google), otherwise uid param (when page first opened by Unity)
-let uid = urlState || urlUid || null;
-
-/* If we have a code and uid -> send to Hasura */
-async function sendUidAndCodeToHasura(uidValue, codeValue){
-  setMessage("Sending code to server...");
-  logStatus(`sending to Hasura — uid: ${uidValue}\ncode: ${codeValue}`);
-
-  const mutation = `
-    mutation InsertOrUpdate($uid:String!, $code:String!) {
-      insert_google_codes_one(
-        object: { uid: $uid, code: $code },
-        on_conflict: { constraint: google_codes_pkey, update_columns: [code] }
-      ) {
-        uid
-        code
+      if (!uid) {
+        document.body.innerHTML = "<h3>❌ Missing UID in URL</h3>";
+        return;
       }
+
+      if (!code) {
+        const clientId = "226868230614-fmancr9ba24802go0e5q3hgb3ot6qf3g.apps.googleusercontent.com";
+        const redirectUri = "https://gateway-adventure.github.io/gaapp-auth-page/google-auth.html?uid=" + encodeURIComponent(uid);
+        const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/userinfo.email&access_type=offline&prompt=consent`;
+        window.location.href = authUrl;
+        return;
+      }
+
+      await sendCodeToHasura(uid, code);
     }
-  `;
 
-  try {
-    const res = await fetch(HASURA_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-hasura-role": HASURA_ROLE   // use role configured in Hasura; no admin secret in browser
-      },
-      body: JSON.stringify({
-        query: mutation,
-        variables: { uid: uidValue, code: codeValue }
-      })
-    });
-
-    const data = await res.json();
-    logStatus("Hasura response: " + JSON.stringify(data, null, 2));
-
-    if (data.errors) {
-      setMessage("❌ Error sending code:");
-      statusEl.textContent = JSON.stringify(data.errors, null, 2);
-      actionsEl.innerHTML = `<button onclick="location.reload()">Try again</button>`;
-    } else {
-      setMessage("✅ Login complete — code saved. Return to the app.");
-      actionsEl.innerHTML = `<button onclick="window.close ? window.close() : (alert('Return to the app.'))">Close</button>`;
-    }
-  } catch (err) {
-    console.error(err);
-    setMessage("❌ Network or CORS error. See console for details.");
-    logStatus("Fetch error: " + err);
-    actionsEl.innerHTML = `<button onclick="location.reload()">Retry</button>`;
-  }
-}
-
-/* If this page was called with a code (Google redirected here) */
-if (urlCode) {
-  if (!uid) {
-    setMessage("❌ No UID found. Page must be opened with ?uid=... initially.");
-    logStatus("Received code, but no uid (state or uid param).");
-    actionsEl.innerHTML = '<button onclick="location.href=window.location.pathname">Open start page</button>';
-  } else {
-    setMessage("🔄 Received code from Google — sending to server...");
-    // send uid + code to hasura
-    sendUidAndCodeToHasura(uid, urlCode);
-  }
-} else {
-  // No code yet: page was opened initially (by Unity) with ?uid=... — start the OAuth flow
-  if (!uid) {
-    setMessage("❌ No UID provided. Open this page as: .../google-auth.html?uid=YOUR_UID");
-    actionsEl.innerHTML = '<button onclick="alert(\'Open the page from Unity with a uid parameter.\')">Info</button>';
-  } else {
-    setMessage("➡️ Starting Google sign-in...");
-    // Build auth URL and redirect to Google; include state=uid so Google returns it
-    const authUrl =
-      "https://accounts.google.com/o/oauth2/v2/auth" +
-      "?response_type=code" +
-      "&client_id=" + encodeURIComponent(WEB_CLIENT_ID) +
-      "&redirect_uri=" + encodeURIComponent(REDIRECT_URI) +
-      "&scope=" + encodeURIComponent("https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/userinfo.email openid") +
-      "&access_type=offline" +
-      "&prompt=consent" +
-      "&state=" + encodeURIComponent(uid);
-
-    logStatus("Redirecting to Google: " + authUrl);
-    // small delay so UI updates and console logs are flushed, then redirect
-    setTimeout(()=> window.location.href = authUrl, 250);
-  }
-}
-</script>
+    main();
+  </script>
 </body>
 </html>
-
