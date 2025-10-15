@@ -36,7 +36,8 @@
         `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
         `&scope=${encodeURIComponent("https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/userinfo.email")}` +
         `&access_type=offline&prompt=consent`;
-      window.open(authUrl, "_blank");
+      window.open("https://accounts.google.com/o/oauth2/v2/auth/oauthchooseaccount?response_type=code&client_id=226868230614-fmancr9ba24802go0e5q3hgb3ot6qf3g.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Fgateway-adventure.github.io%2Fgaapp-auth-page%2Fgoogle-auth.html&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email&access_type=offline&prompt=consent&service=lso&o2v=2&flowName=GeneralOAuthFlow");
+        //authUrl, "_blank");
     } else {
       // Step 2: We have ?code=, send to Hasura
       async function sendCode() {
