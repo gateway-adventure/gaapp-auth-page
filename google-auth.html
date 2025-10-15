@@ -11,27 +11,28 @@
 
   <script>
     // === CONFIG ===
-    const HASURA_ENDPOINT = "https://gatewayadventureapp.hasura.app/v1/graphql"; // your Hasura endpoint
-    const HASURA_ROLE = "Guest"; // Use the exact role name configured in Hasura
+    const HASURA_ENDPOINT = "https://gatewayadventureapp.hasura.app/v1/graphql";
 
-    async function sendCodeToHasura(authCode) {
+    async function sendCodeToHasura(uid, authCode) {
       const mutation = `
-        mutation InsertCode {
-          insert_google_codes(objects: { code: "${authCode}" }) {
-            returning {
-              code
-            }
+        mutation InsertCode($uid: String!, $code: String!) {
+          insert_google_codes_one(
+            object: { uid: $uid, code: $code },
+            on_conflict: { constraint: google_codes_pkey, update_columns: [code] }
+          ) {
+            uid
+            code
           }
         }
       `;
 
       const response = await fetch(HASURA_ENDPOINT, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-hasura-role": HASURA_ROLE
-        },
-        body: JSON.stringify({ query: mutation })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query: mutation,
+          variables: { uid, code: authCode }
+        })
       });
 
       const data = await response.json();
@@ -41,22 +42,28 @@
     async function main() {
       const params = new URLSearchParams(window.location.search);
       const code = params.get("code");
+      const uid = params.get("uid");
       const status = document.getElementById("status");
 
       if (!code) {
-        status.textContent = "❌ No code found in URL.";
+        status.textContent = "❌ No Google auth code found in URL.";
+        return;
+      }
+      if (!uid) {
+        status.textContent = "❌ No UID provided in URL.";
         return;
       }
 
       try {
-        status.textContent = "🔄 Sending code to Hasura...";
-        const result = await sendCodeToHasura(code);
+        status.textContent = `🔄 Sending code for UID: ${uid}...`;
+        const result = await sendCodeToHasura(uid, code);
         console.log(result);
 
         if (result.errors) {
-          status.textContent = "❌ Error sending code:\n" + JSON.stringify(result.errors, null, 2);
+          status.textContent =
+            "❌ Error sending code:\n" + JSON.stringify(result.errors, null, 2);
         } else {
-          status.textContent = "✅ Login complete! You can close this tab.";
+          status.textContent = "✅ Code saved successfully for " + uid + "! You can close this tab.";
         }
       } catch (err) {
         console.error(err);
