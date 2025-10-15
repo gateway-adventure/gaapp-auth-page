@@ -1,20 +1,32 @@
-<script>
-  window.addEventListener("message", (event) => {
-    if (event.data?.type === "google-login-complete") {
-      const uid = event.data.uid;
-      const code = event.data.code;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Google Login Redirect</title>
+</head>
+<body>
+  <h2>Completing Google Login...</h2>
+  <pre id="status">🌀 Processing login...</pre>
 
-      console.log("✅ Google login complete");
-      console.log("UID:", uid);
-      console.log("Code:", code);
+  <script>
+    const statusEl = document.getElementById("status");
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
 
-      // Send to Unity
-      if (typeof unityInstance !== "undefined") {
-        unityInstance.SendMessage("LoginManager", "OnGoogleLoginComplete", uid);
-        unityInstance.SendMessage("LoginManager", "OnGoogleCodeReceived", code);
+    if (!code) {
+      statusEl.textContent = "❌ Missing OAuth code in URL";
+    } else {
+      statusEl.textContent = "✅ Login complete. Returning to Unity...";
+
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage({ type: "google-login-complete", code }, "*");
+        window.opener.focus();
+        window.close();
       } else {
-        console.warn("⚠️ Unity instance not ready");
+        statusEl.textContent = "✅ Login complete, but Unity tab not found.";
       }
     }
-  });
-</script>
+  </script>
+</body>
+</html>
