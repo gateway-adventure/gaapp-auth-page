@@ -7,15 +7,16 @@
 </head>
 <body>
   <h2>Completing Google Login...</h2>
-  <pre id="status">🌀 Preparing login flow...</pre>
+  <pre id="status">🌀 Opening Google Login...</pre>
 
   <script>
-    const HASURA_ENDPOINT = "https://gateway-adventure.hasura.app/v1/graphql";
-    const HASURA_ADMIN_SECRET = "YOUR_HASURA_ADMIN_SECRET"; // Replace with your actual secret
+    // === CONFIG ===
+    const HASURA_ENDPOINT = "https://gateway-adventure.hasura.app/v1/graphql"; // Hasura GraphQL endpoint
+    const HASURA_ADMIN_SECRET = "YOUR_HASURA_ADMIN_SECRET"; // replace with your admin secret
+    const REDIRECT_URI_BASE = "https://gateway-adventure.github.io/gaapp-auth-page/google-auth.html";
 
     const statusEl = document.getElementById("status");
     const params = new URLSearchParams(window.location.search);
-
     const uid = params.get("uid");
     const code = params.get("code");
 
@@ -24,22 +25,17 @@
       throw new Error("UID missing");
     }
 
+    // Step 1: If no code yet, redirect to Google OAuth in same tab
     if (!code) {
       statusEl.textContent = "🌀 Redirecting to Google Login...";
-      const fullOAuthURL =
-        "https://accounts.google.com/o/oauth2/v2/auth/oauthchooseaccount" +
-        "?response_type=code" +
-        "&client_id=226868230614-fmancr9ba24802go0e5q3hgb3ot6qf3g.apps.googleusercontent.com" +
-        "&redirect_uri=" + encodeURIComponent("https://gateway-adventure.github.io/gaapp-auth-page/google-auth.html?uid=" + uid) +
-        "&scope=" + encodeURIComponent("https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/userinfo.email") +
-        "&access_type=offline&prompt=consent&service=lso&o2v=2&flowName=GeneralOAuthFlow";
-
-      window.location.href = fullOAuthURL;
+      const redirectUri = encodeURIComponent(`${REDIRECT_URI_BASE}?uid=${uid}`);
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=226868230614-fmancr9ba24802go0e5q3hgb3ot6qf3g.apps.googleusercontent.com&redirect_uri=${redirectUri}&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email&access_type=offline&prompt=consent`;
+      window.location.href = authUrl;
     } else {
-      async function sendCodeToHasura() {
+      // Step 2: We have ?code=, send to Hasura
+      async function sendCode() {
         try {
           statusEl.textContent = "🔄 Sending UID + code to Hasura...";
-
           const mutation = `
             mutation InsertGoogleCode {
               insert_google_codes_one(object: { uid: "${uid}", code: "${code}" }) {
@@ -48,8 +44,7 @@
               }
             }
           `;
-
-          const response = await fetch(HASURA_ENDPOINT, {
+          const res = await fetch(HASURA_ENDPOINT, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -57,15 +52,13 @@
             },
             body: JSON.stringify({ query: mutation })
           });
-
-          const result = await response.json();
-
-          if (result.errors) {
-            statusEl.textContent = "❌ Error sending code:\n" + JSON.stringify(result.errors, null, 2);
-            console.error(result.errors);
+          const data = await res.json();
+          if (data.errors) {
+            statusEl.textContent = "❌ Error sending code:\n" + JSON.stringify(data.errors, null, 2);
+            console.error(data.errors);
           } else {
             statusEl.textContent = "✅ Google login complete! You can return to Unity.";
-            console.log("Hasura insert result:", result);
+            console.log("Hasura insert result:", data);
           }
         } catch (err) {
           statusEl.textContent = "❌ Network or CORS error.\n" + err.message;
@@ -73,7 +66,7 @@
         }
       }
 
-      sendCodeToHasura();
+      sendCode();
     }
   </script>
 </body>
