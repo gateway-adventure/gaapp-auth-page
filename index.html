@@ -1,0 +1,21 @@
+<script>
+  function startGoogleLogin() {
+    const authUrl = "https://accounts.google.com/o/oauth2/v2/auth/oauthchooseaccount?response_type=code&client_id=226868230614-fmancr9ba24802go0e5q3hgb3ot6qf3g.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Fgateway-adventure.github.io%2Fgaapp-auth-page%2Fgoogle-auth.html&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email&access_type=offline&prompt=consent";
+
+    const win = window.open(authUrl, "_blank");
+    if (win && typeof unityInstance !== "undefined") {
+      unityInstance.SendMessage("LoginManager", "OnGoogleLoginStarted", "Login tab opened");
+    }
+  }
+
+  window.addEventListener("message", (event) => {
+    if (event.data?.type === "google-login-complete") {
+      const code = event.data.code;
+      console.log("✅ Received OAuth code:", code);
+
+      if (typeof unityInstance !== "undefined") {
+        unityInstance.SendMessage("LoginManager", "OnGoogleCodeReceived", code);
+      }
+    }
+  });
+</script>
