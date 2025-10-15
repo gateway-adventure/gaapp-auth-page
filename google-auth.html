@@ -30,8 +30,8 @@
     // Step 1: If no code yet, open Google OAuth
     if (!code) {
       statusEl.textContent = "🌀 Opening Google Login...";
-      window.open("https://accounts.google.com/o/oauth2/v2/auth/oauthchooseaccount?response_type=code&client_id=226868230614-fmancr9ba24802go0e5q3hgb3ot6qf3g.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Fgateway-adventure.github.io%2Fgaapp-auth-page%2Fgoogle-auth.html&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email&access_type=offline&prompt=consent&service=lso&o2v=2&flowName=GeneralOAuthFlow");
-        //authUrl, "_blank");
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI + "?uid=" + uid)}&scope=https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/userinfo.email&access_type=offline&prompt=consent`;
+      window.location.href = authUrl;
     } else {
       // Step 2: We have ?code=, send to Hasura
       async function sendCode() {
@@ -62,8 +62,18 @@
             statusEl.textContent = "❌ Error sending code:\n" + JSON.stringify(data.errors, null, 2);
             console.error(data.errors);
           } else {
-            statusEl.textContent = "✅ Google login complete! You can return to Unity.";
-            console.log("Hasura insert result:", data);
+            statusEl.textContent = "✅ Google login complete! Returning to Unity...";
+
+            // Send uid and code back to the opener tab
+            if (window.opener) {
+              window.opener.postMessage(
+                { type: "google-auth-complete", uid, code },
+                "*" // You can restrict this to your Unity app's origin
+              );
+              window.close(); // Optional: close the auth tab
+            } else {
+              statusEl.textContent += "\n⚠️ Unable to return to Unity tab automatically.";
+            }
           }
         } catch (err) {
           statusEl.textContent = "❌ Network or CORS error.\n" + err.message;
@@ -76,4 +86,3 @@
   </script>
 </body>
 </html>
-
