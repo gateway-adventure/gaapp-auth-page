@@ -1,87 +1,73 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gateway Adventure Login</title>
+  <meta charset="utf-8" />
+  <title>Google Auth Redirect</title>
 </head>
 <body>
-  <h2>Completing Google Login...</h2>
-  <pre id="status">Loading...</pre>
+  <h3>Completing Google Login...</h3>
+  <pre id="status"></pre>
 
   <script>
-    const HASURA_ENDPOINT = "https://gateway-adventureapp.hasura.app/v1/graphql";
+    const statusEl = document.getElementById('status');
+    const urlParams = new URLSearchParams(window.location.search);
+    const uid = urlParams.get('uid');
 
-    async function sendCodeToHasura(uid, code) {
-      const mutation = `
-        mutation InsertCode($uid: String!, $code: String!) {
-          insert_google_codes_one(
-            object: { uid: $uid, code: $code },
-            on_conflict: { constraint: google_codes_pkey, update_columns: code }
-          ) {
-            uid
-            code
-          }
-        }
-      `;
-
-      const response = await fetch(HASURA_ENDPOINT, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: mutation, variables: { uid, code } })
-      });
-
-      return response.json();
+    if (!uid) {
+      statusEl.textContent = "❌ Missing UID in URL";
+      throw new Error("Missing UID in URL");
     }
 
-    async function main() {
-      const status = document.getElementById("status");
-      const params = new URLSearchParams(window.location.search);
-      const uid = params.get("uid");
-      const code = params.get("code");
+    const clientId = "226868230614-fmancr9ba24802go0e5q3hgb3ot6qf3g.apps.googleusercontent.com";
+    const redirectUri = window.location.origin + window.location.pathname; // same page
 
-      if (!uid) {
-        status.textContent = "❌ Missing UID in URL";
-        return;
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=code`
+      + `&client_id=${clientId}`
+      + `&redirect_uri=${encodeURIComponent(redirectUri)}`
+      + `&scope=${encodeURIComponent("https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/userinfo.email")}`
+      + `&access_type=offline&prompt=consent`;
+
+    statusEl.textContent = "🌀 Opening Google Login...";
+
+    // 🔹 Step 1: open Google login in new tab
+    const popup = window.open(authUrl, "_blank");
+
+    // 🔹 Step 2: listen for message back from popup
+    window.addEventListener("message", async (event) => {
+      if (event.data?.type === "google-auth-code") {
+        const code = event.data.code;
+        statusEl.textContent = `✅ Got code: ${code}\nUploading...`;
+
+        // Upload to Hasura
+        const mutation = `
+          mutation InsertCode($uid: String!, $code: String!) {
+            insert_google_codes_one(object: {uid: $uid, code: $code}, on_conflict: {constraint: google_codes_pkey, update_columns: code}) {
+              uid
+            }
+          }`;
+
+        const resp = await fetch("https://gateway-adventureapp.hasura.app/v1/graphql", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: mutation, variables: { uid, code } })
+        });
+
+        const result = await resp.json();
+        statusEl.textContent = "✅ Code saved to Hasura!\nYou can return to Unity.";
       }
+    });
 
-      // Step 1: If no code yet, redirect to Google OAuth
-      if (!code) {
-        const clientId = "226868230614-fmancr9ba24802go0e5q3hgb3ot6qf3g.apps.googleusercontent.com";
-        const redirectUri = "https://gateway-adventure.github.io/gaapp-auth-page/google-auth.html";
-        const scope = encodeURIComponent("https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/userinfo.email");
-        const oauthUrl =
-          `https://accounts.google.com/o/oauth2/v2/auth?response_type=code` +
-          `&client_id=${clientId}` +
-          `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-          `&scope=${scope}` +
-          `&access_type=offline&prompt=consent&state=${uid}` +
-          `&include_granted_scopes=true`;
-
-        status.textContent = "🔄 Redirecting to Google Sign-In...";
-        window.location.href = oauthUrl;
-        return;
-      }
-
-      // Step 2: We have ?code= and ?uid= → send to Hasura
-      try {
-        status.textContent = "📡 Sending code to Hasura...";
-        const result = await sendCodeToHasura(uid, code);
-
-        if (result.errors) {
-          console.error(result.errors);
-          status.textContent = "❌ Error sending code:\n" + JSON.stringify(result.errors, null, 2);
-        } else {
-          status.textContent = "✅ Login complete! You can close this tab.";
-        }
-      } catch (err) {
-        console.error(err);
-        status.textContent = "❌ Network error:\n" + err.message;
+    // 🔹 Step 3: if redirected back here (popup case)
+    const code = urlParams.get("code");
+    if (code) {
+      // send code to opener (main tab)
+      if (window.opener) {
+        window.opener.postMessage({ type: "google-auth-code", code }, "*");
+        window.close();
+      } else {
+        statusEl.textContent = "✅ Auth completed, you can close this tab.";
       }
     }
-
-    main();
   </script>
 </body>
 </html>
-
