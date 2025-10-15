@@ -10,8 +10,9 @@
   <pre id="status">🌀 Opening Google Login...</pre>
 
   <script>
+    // === CONFIG ===
     const HASURA_ENDPOINT = "https://gateway-adventure.hasura.app/v1/graphql";
-    const HASURA_ADMIN_SECRET = "YOUR_HASURA_ADMIN_SECRET";
+    const HASURA_ADMIN_SECRET = "YOUR_HASURA_ADMIN_SECRET"; // Replace with your actual secret
     const REDIRECT_URI = "https://gateway-adventure.github.io/gaapp-auth-page/google-auth.html";
 
     const statusEl = document.getElementById("status");
@@ -26,13 +27,20 @@
 
     if (!code) {
       statusEl.textContent = "🌀 Opening Google Login in new tab...";
+
       const authUrl = "https://accounts.google.com/o/oauth2/v2/auth/oauthchooseaccount?response_type=code&client_id=226868230614-fmancr9ba24802go0e5q3hgb3ot6qf3g.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Fgateway-adventure.github.io%2Fgaapp-auth-page%2Fgoogle-auth.html&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email&access_type=offline&prompt=consent&service=lso&o2v=2&flowName=GeneralOAuthFlow";
 
-      // Delay slightly to avoid popup blockers
-      setTimeout(() => {
-        window.open(authUrl, "_blank");
-      }, 500);
+      // Delay + animation frame = reliable tab opening
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          const win = window.open(authUrl, "_blank");
+          if (!win) {
+            statusEl.textContent = "❌ Popup blocked. Please allow popups for this site.";
+          }
+        }, 100);
+      });
     } else {
+      // Step 2: We have ?code=, send to Hasura
       async function sendCode() {
         try {
           statusEl.textContent = "🔄 Sending UID + code to Hasura...";
@@ -63,6 +71,7 @@
           console.error(err);
         }
       }
+
       sendCode();
     }
   </script>
