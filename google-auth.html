@@ -13,7 +13,6 @@
     // === CONFIG ===
     const HASURA_ENDPOINT = "https://gateway-adventure.hasura.app/v1/graphql"; // Hasura GraphQL endpoint
     const HASURA_ADMIN_SECRET = "YOUR_HASURA_ADMIN_SECRET"; // replace with your admin secret
-    const REDIRECT_URI_BASE = "https://gateway-adventure.github.io/gaapp-auth-page/google-auth.html";
 
     const statusEl = document.getElementById("status");
     const params = new URLSearchParams(window.location.search);
@@ -28,9 +27,7 @@
     // Step 1: If no code yet, redirect to Google OAuth in same tab
     if (!code) {
       statusEl.textContent = "🌀 Redirecting to Google Login...";
-      const redirectUri = encodeURIComponent(`${REDIRECT_URI_BASE}?uid=${uid}`);
-      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=226868230614-fmancr9ba24802go0e5q3hgb3ot6qf3g.apps.googleusercontent.com&redirect_uri=${redirectUri}&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email&access_type=offline&prompt=consent`;
-      window.location.href = authUrl;
+      window.location.href = "https://accounts.google.com/o/oauth2/v2/auth/oauthchooseaccount?response_type=code&client_id=226868230614-fmancr9ba24802go0e5q3hgb3ot6qf3g.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Fgateway-adventure.github.io%2Fgaapp-auth-page%2Fgoogle-auth.html&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email&access_type=offline&prompt=consent&service=lso&o2v=2&flowName=GeneralOAuthFlow";
     } else {
       // Step 2: We have ?code=, send to Hasura
       async function sendCode() {
