@@ -7,8 +7,7 @@
 </head>
 <body>
   <h2>Completing Google Login...</h2>
-  <pre id="status">🌀 Preparing Google Login...</pre>
-  <button id="loginBtn" style="display:none;">Open Google Login</button>
+  <pre id="status">🌀 Opening Google Login...</pre>
 
   <script>
     const HASURA_ENDPOINT = "https://gateway-adventure.hasura.app/v1/graphql";
@@ -16,7 +15,6 @@
     const REDIRECT_URI = "https://gateway-adventure.github.io/gaapp-auth-page/google-auth.html";
 
     const statusEl = document.getElementById("status");
-    const loginBtn = document.getElementById("loginBtn");
     const params = new URLSearchParams(window.location.search);
     const uid = params.get("uid");
     const code = params.get("code");
@@ -27,12 +25,13 @@
     }
 
     if (!code) {
-      statusEl.textContent = "🌀 Click to open Google Login...";
-      loginBtn.style.display = "inline-block";
-      loginBtn.onclick = () => {
-        const authUrl = "https://accounts.google.com/o/oauth2/v2/auth/oauthchooseaccount?response_type=code&client_id=226868230614-fmancr9ba24802go0e5q3hgb3ot6qf3g.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Fgateway-adventure.github.io%2Fgaapp-auth-page%2Fgoogle-auth.html&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email&access_type=offline&prompt=consent&service=lso&o2v=2&flowName=GeneralOAuthFlow";
+      statusEl.textContent = "🌀 Opening Google Login in new tab...";
+      const authUrl = "https://accounts.google.com/o/oauth2/v2/auth/oauthchooseaccount?response_type=code&client_id=226868230614-fmancr9ba24802go0e5q3hgb3ot6qf3g.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Fgateway-adventure.github.io%2Fgaapp-auth-page%2Fgoogle-auth.html&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email&access_type=offline&prompt=consent&service=lso&o2v=2&flowName=GeneralOAuthFlow";
+
+      // Delay slightly to avoid popup blockers
+      setTimeout(() => {
         window.open(authUrl, "_blank");
-      };
+      }, 500);
     } else {
       async function sendCode() {
         try {
