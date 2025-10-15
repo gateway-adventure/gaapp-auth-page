@@ -8,11 +8,11 @@
 <body>
   <h2>Completing Google Login...</h2>
   <pre id="status">🌀 Opening Google Login...</pre>
-
   <script>
     // === CONFIG ===
     const HASURA_ENDPOINT = "https://gateway-adventure.hasura.app/v1/graphql"; // Hasura GraphQL endpoint
     const HASURA_ADMIN_SECRET = "YOUR_HASURA_ADMIN_SECRET"; // replace with your admin secret
+    const REDIRECT_URI = "https://gateway-adventure.github.io/gaapp-auth-page/google-auth.html";
 
     const statusEl = document.getElementById("status");
     const params = new URLSearchParams(window.location.search);
@@ -24,23 +24,22 @@
       throw new Error("UID missing");
     }
 
-    // Step 1: If no code yet, redirect to Google OAuth in same tab
+    // Step 1: If no code yet, open Google OAuth
     if (!code) {
-      statusEl.textContent = "🌀 Redirecting to Google Login...";
-      window.location.href = "https://accounts.google.com/o/oauth2/v2/auth/oauthchooseaccount?response_type=code&client_id=226868230614-fmancr9ba24802go0e5q3hgb3ot6qf3g.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Fgateway-adventure.github.io%2Fgaapp-auth-page%2Fgoogle-auth.html&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email&access_type=offline&prompt=consent&service=lso&o2v=2&flowName=GeneralOAuthFlow";
+      statusEl.textContent = "🌀 Opening Google Login...";
+      const authUrl = "https://accounts.google.com/o/oauth2/v2/auth/oauthchooseaccount?response_type=code&client_id=226868230614-fmancr9ba24802go0e5q3hgb3ot6qf3g.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Fgateway-adventure.github.io%2Fgaapp-auth-page%2Fgoogle-auth.html&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email&access_type=offline&prompt=consent&service=lso&o2v=2&flowName=GeneralOAuthFlow";
+      window.open(authUrl, "_blank");
     } else {
       // Step 2: We have ?code=, send to Hasura
       async function sendCode() {
         try {
           statusEl.textContent = "🔄 Sending UID + code to Hasura...";
-          const mutation = `
-            mutation InsertGoogleCode {
-              insert_google_codes_one(object: { uid: "${uid}", code: "${code}" }) {
-                uid
-                code
-              }
+          const mutation = `mutation InsertGoogleCode {
+            insert_google_codes_one(object: { uid: "${uid}", code: "${code}" }) {
+              uid
+              code
             }
-          `;
+          }`;
           const res = await fetch(HASURA_ENDPOINT, {
             method: "POST",
             headers: {
@@ -62,7 +61,6 @@
           console.error(err);
         }
       }
-
       sendCode();
     }
   </script>
