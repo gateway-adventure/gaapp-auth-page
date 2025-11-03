@@ -48,8 +48,13 @@
           copyBtn.textContent = "✅ Copied!";
           setTimeout(() => {
             copyBtn.textContent = "📋 Copy Code";
-            window.close(); // Attempt to close the window
-          }, 2000);
+            window.close();
+
+            // Fallback if window.close() is blocked
+            setTimeout(() => {
+              window.location.href = "about:blank";
+            }, 500);
+          }, 1000);
         });
       };
     }
