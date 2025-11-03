@@ -1,55 +1,27 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Google Code Copier</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      text-align: center;
-      padding: 2em;
-    }
-    button {
-      padding: 0.8em 1.2em;
-      font-size: 1em;
-      margin-top: 1em;
-      cursor: pointer;
-    }
-    #codeBox {
-      font-size: 1.2em;
-      margin-top: 1em;
-      word-break: break-all;
-      background: #f0f0f0;
-      padding: 1em;
-      border-radius: 6px;
-    }
-  </style>
-</head>
-<body>
-  <h2>✅ Google Login Complete</h2>
-  <p>Click below to copy your login code and paste it into Unity:</p>
-  <div id="codeBox">Loading...</div>
-  <button id="copyBtn">📋 Copy Code</button>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get("code");
+  const codeBox = document.getElementById("codeBox");
+  const copyBtn = document.getElementById("copyBtn");
 
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get("code");
-    const codeBox = document.getElementById("codeBox");
-    const copyBtn = document.getElementById("copyBtn");
+  if (!code) {
+    codeBox.textContent = "❌ No code found in URL.";
+    copyBtn.disabled = true;
+  } else {
+    codeBox.textContent = code;
 
-    if (!code) {
-      codeBox.textContent = "❌ No code found in URL.";
-      copyBtn.disabled = true;
-    } else {
-      codeBox.textContent = code;
-      copyBtn.onclick = () => {
-        navigator.clipboard.writeText(code).then(() => {
-          copyBtn.textContent = "✅ Copied!";
-          setTimeout(() => (copyBtn.textContent = "📋 Copy Code"), 2000);
-        });
-      };
-    }
-  </script>
-</body>
-</html>
+    // Automatically copy to clipboard
+    navigator.clipboard.writeText(code).then(() => {
+      copyBtn.textContent = "✅ Copied!";
+      setTimeout(() => (copyBtn.textContent = "📋 Copy Code"), 2000);
+    });
+
+    // Optional: still allow manual copy via button
+    copyBtn.onclick = () => {
+      navigator.clipboard.writeText(code).then(() => {
+        copyBtn.textContent = "✅ Copied!";
+        setTimeout(() => (copyBtn.textContent = "📋 Copy Code"), 2000);
+      });
+    };
+  }
+</script>
