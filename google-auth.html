@@ -10,21 +10,13 @@
   } else {
     codeBox.textContent = code;
 
-    const autoCopy = () => {
+    copyBtn.onclick = () => {
       navigator.clipboard.writeText(code).then(() => {
         copyBtn.textContent = "✅ Copied!";
-        setTimeout(() => (copyBtn.textContent = "📋 Copy Code"), 2000);
+        setTimeout(() => {
+          window.close(); // Close the tab after copy
+        }, 500); // Small delay to show "Copied!" before closing
       });
-      // Remove listener after first interaction
-      window.removeEventListener("mousemove", autoCopy);
-      window.removeEventListener("keydown", autoCopy);
     };
-
-    // Listen for first user interaction
-    window.addEventListener("mousemove", autoCopy);
-    window.addEventListener("keydown", autoCopy);
-
-    // Still allow manual copy
-    copyBtn.onclick = autoCopy;
   }
 </script>
