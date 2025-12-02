@@ -28,34 +28,62 @@
 </head>
 <body>
   <h2>✅ Google Login Complete</h2>
-  <p>Click below to copy your login code and paste it into Unity:</p>
+  <p>Tap below to copy your login code and paste it into Unity:</p>
+
   <div id="codeBox">Loading...</div>
   <button id="copyBtn">📋 Copy Code</button>
+
+  <!-- Hidden textarea for mobile fallback -->
+  <textarea id="copyArea" style="position:absolute; left:-9999px;"></textarea>
 
   <script>
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
     const codeBox = document.getElementById("codeBox");
     const copyBtn = document.getElementById("copyBtn");
+    const copyArea = document.getElementById("copyArea");
+
+    function fallbackCopy(text) {
+      copyArea.value = text;
+      copyArea.select();
+      copyArea.setSelectionRange(0, 99999); // mobile support
+      document.execCommand("copy");
+    }
+
+    async function copyText(text) {
+      // Try modern clipboard API first
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+          await navigator.clipboard.writeText(text);
+          return true;
+        } catch (e) {
+          // Continue to fallback
+        }
+      }
+      // Use fallback for mobile + blocked clipboard
+      fallbackCopy(text);
+      return true;
+    }
 
     if (!code) {
       codeBox.textContent = "❌ No code found in URL.";
       copyBtn.disabled = true;
     } else {
       codeBox.textContent = code;
-      copyBtn.onclick = () => {
-        navigator.clipboard.writeText(code).then(() => {
-          copyBtn.textContent = "✅ Copied!";
-          setTimeout(() => {
-            copyBtn.textContent = "📋 Copy Code";
-            window.close();
 
-            // Fallback if window.close() is blocked
-            setTimeout(() => {
-              window.location.href = "about:blank";
-            }, 500);
-          }, 1000);
-        });
+      copyBtn.onclick = async () => {
+        await copyText(code);
+
+        copyBtn.textContent = "✅ Copied!";
+        setTimeout(() => {
+          copyBtn.textContent = "📋 Copy Code";
+          window.close();
+
+          // Fallback if window.close() is blocked
+          setTimeout(() => {
+            window.location.href = "about:blank";
+          }, 500);
+        }, 1000);
       };
     }
   </script>
