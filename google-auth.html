@@ -10,11 +10,13 @@
       font-family: sans-serif;
       text-align: center;
       padding: 2em;
-      background: #ffffff;
     }
 
-    h2 {
-      color: #2e7d32;
+    button {
+      padding: 0.9em 1.4em;
+      font-size: 1.1em;
+      margin-top: 1em;
+      cursor: pointer;
     }
 
     #codeBox {
@@ -24,28 +26,19 @@
       background: #f0f0f0;
       padding: 1em;
       border-radius: 6px;
-      user-select: text;
-    }
-
-    button {
-      padding: 0.8em 1.2em;
-      font-size: 1em;
-      margin-top: 1em;
-      cursor: pointer;
     }
   </style>
 </head>
 
 <body>
-
   <h2>✅ Google Login Complete</h2>
-  <p id="instructions">
-    Click the button to copy your login code.
-  </p>
+  <p>Tap below to copy your login code and paste it into Unity:</p>
 
   <div id="codeBox">Loading...</div>
-
   <button id="copyBtn">📋 Copy Code</button>
+
+  <!-- Hidden textarea for mobile fallback -->
+  <textarea id="copyArea" style="position:absolute; left:-9999px;"></textarea>
 
   <script>
     const params = new URLSearchParams(window.location.search);
@@ -53,53 +46,64 @@
 
     const codeBox = document.getElementById("codeBox");
     const copyBtn = document.getElementById("copyBtn");
-    const instructions = document.getElementById("instructions");
+    const copyArea = document.getElementById("copyArea");
 
-    function isIOS() {
-      return /iPad|iPhone|iPod/.test(navigator.userAgent);
+    // Detect iOS devices
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+    function fallbackCopy(text) {
+      copyArea.value = text;
+      copyArea.select();
+      copyArea.setSelectionRange(0, 99999); // iOS support
+      document.execCommand("copy");
+    }
+
+    async function copyText(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+          await navigator.clipboard.writeText(text);
+          return true;
+        } catch (e) {
+          // fallback below
+        }
+      }
+      fallbackCopy(text);
+      return true;
     }
 
     if (!code) {
       codeBox.textContent = "❌ No code found in URL.";
       copyBtn.disabled = true;
-      instructions.textContent = "";
     } else {
       codeBox.textContent = code;
 
-      // iOS instructions
-      if (isIOS()) {
-        instructions.textContent =
-          "Tap and hold the code below, then choose Copy.";
-        copyBtn.textContent = "ℹ️ How to Copy";
+      // Change button text on iOS
+      if (isIOS) {
+        copyBtn.textContent = "📋 Copy Text (Tap Me)";
       }
 
-      copyBtn.onclick = () => {
+      copyBtn.onclick = async () => {
+        await copyText(code);
 
-        // 🚫 iOS cannot auto-copy
-        if (isIOS()) {
-          alert("Tap and hold the code, then select Copy.");
-          return;
-        }
+        copyBtn.textContent = "✅ Copied!";
 
-        // ✅ Android / Desktop
-        navigator.clipboard.writeText(code).then(() => {
-          copyBtn.textContent = "✅ Copied!";
-          setTimeout(() => {
-            copyBtn.textContent = "📋 Copy Code";
+        setTimeout(() => {
+          if (isIOS) {
+            // iOS blocks window.close(), so guide user instead
+            alert("Code copied! Return to Unity and paste it.");
+            copyBtn.textContent = "📋 Copy Text (Tap Me)";
+          } else {
+            // Desktop / Android
             window.close();
 
             // Fallback if close is blocked
             setTimeout(() => {
               window.location.href = "about:blank";
             }, 500);
-
-          }, 1000);
-        }).catch(() => {
-          alert("Copy failed. Please select the text manually.");
-        });
+          }
+        }, 800);
       };
     }
   </script>
-
 </body>
 </html>
