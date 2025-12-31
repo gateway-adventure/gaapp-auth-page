@@ -3,22 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Google Code Copier</title>
-
+  <title>Google Code Sender</title>
   <style>
     body {
       font-family: sans-serif;
       text-align: center;
       padding: 2em;
     }
-
     button {
-      padding: 0.9em 1.4em;
-      font-size: 1.1em;
-      margin-top: 1em;
+      padding: 1em 1.5em;
+      font-size: 1.2em;
+      margin-top: 2em;
       cursor: pointer;
     }
-
     #codeBox {
       font-size: 1.2em;
       margin-top: 1em;
@@ -29,79 +26,39 @@
     }
   </style>
 </head>
-
 <body>
   <h2>✅ Google Login Complete</h2>
-  <p>Tap below to copy your login code and paste it into Unity:</p>
+  <p>Tap the button to send your login code back to Unity:</p>
 
   <div id="codeBox">Loading...</div>
-  <button id="copyBtn">📋 Copy Code</button>
-
-  <!-- Hidden textarea for mobile fallback -->
-  <textarea id="copyArea" style="position:absolute; left:-9999px;"></textarea>
+  <button id="sendBtn">🚀 Send Code to Unity</button>
 
   <script>
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
-
     const codeBox = document.getElementById("codeBox");
-    const copyBtn = document.getElementById("copyBtn");
-    const copyArea = document.getElementById("copyArea");
+    const sendBtn = document.getElementById("sendBtn");
 
-    // Detect iOS devices
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-
-    function fallbackCopy(text) {
-      copyArea.value = text;
-      copyArea.select();
-      copyArea.setSelectionRange(0, 99999); // iOS support
-      document.execCommand("copy");
-    }
-
-    async function copyText(text) {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        try {
-          await navigator.clipboard.writeText(text);
-          return true;
-        } catch (e) {
-          // fallback below
-        }
-      }
-      fallbackCopy(text);
-      return true;
-    }
+    // Replace this with your Unity app scheme
+    const unityAppScheme = "myunityapp://login?code=";
 
     if (!code) {
       codeBox.textContent = "❌ No code found in URL.";
-      copyBtn.disabled = true;
+      sendBtn.disabled = true;
     } else {
       codeBox.textContent = code;
 
-      // Change button text on iOS
-      if (isIOS) {
-        copyBtn.textContent = "📋 Copy Text (Tap Me)";
-      }
+      sendBtn.onclick = () => {
+        // Build deep link URL
+        const deepLink = unityAppScheme + encodeURIComponent(code);
 
-      copyBtn.onclick = async () => {
-        await copyText(code);
+        // Redirect user to Unity app
+        window.location.href = deepLink;
 
-        copyBtn.textContent = "✅ Copied!";
-
+        // Optional: fallback message for browsers that block the link
         setTimeout(() => {
-          if (isIOS) {
-            // iOS blocks window.close(), so guide user instead
-            alert("Code copied! Return to Unity and paste it.");
-            copyBtn.textContent = "📋 Copy Text (Tap Me)";
-          } else {
-            // Desktop / Android
-            window.close();
-
-            // Fallback if close is blocked
-            setTimeout(() => {
-              window.location.href = "about:blank";
-            }, 500);
-          }
-        }, 800);
+          alert("If nothing happened, copy this code manually:\n\n" + code);
+        }, 500);
       };
     }
   </script>
