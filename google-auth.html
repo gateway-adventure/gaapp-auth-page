@@ -11,8 +11,8 @@
       padding: 2em;
     }
     button {
-      padding: 0.9em 1.4em;
-      font-size: 1.1em;
+      padding: 0.8em 1.2em;
+      font-size: 1em;
       margin-top: 1em;
       cursor: pointer;
     }
@@ -28,58 +28,34 @@
 </head>
 <body>
   <h2>✅ Google Login Complete</h2>
-  <p>Tap the button to copy your login code:</p>
-
+  <p>Click below to copy your login code and paste it into Unity:</p>
   <div id="codeBox">Loading...</div>
-  <button id="copyBtn">Loading...</button>
-
-  <!-- Hidden textarea for fallback -->
-  <textarea id="copyArea" style="position:absolute; left:-9999px;"></textarea>
+  <button id="copyBtn">📋 Copy Code</button>
 
   <script>
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
     const codeBox = document.getElementById("codeBox");
     const copyBtn = document.getElementById("copyBtn");
-    const copyArea = document.getElementById("copyArea");
-
-    // Detect iOS
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-
-    // Set button text based on device
-    copyBtn.textContent = isIOS ? "iOS" : "Nothing";
-
-    function fallbackCopy(text) {
-      copyArea.value = text;
-      copyArea.select();
-      copyArea.setSelectionRange(0, 99999); // mobile support
-      document.execCommand("copy");
-    }
-
-    async function copyText(text) {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        try {
-          await navigator.clipboard.writeText(text);
-          return true;
-        } catch (e) {}
-      }
-      fallbackCopy(text);
-      return true;
-    }
 
     if (!code) {
       codeBox.textContent = "❌ No code found in URL.";
       copyBtn.disabled = true;
     } else {
       codeBox.textContent = code;
+      copyBtn.onclick = () => {
+        navigator.clipboard.writeText(code).then(() => {
+          copyBtn.textContent = "✅ Copied!";
+          setTimeout(() => {
+            copyBtn.textContent = "📋 Copy Code";
+            window.close();
 
-      copyBtn.onclick = async () => {
-        await copyText(code);
-
-        copyBtn.textContent = "✅ Copied!";
-        setTimeout(() => {
-          copyBtn.textContent = isIOS ? "iOS" : "Nothing";
-        }, 1000);
+            // Fallback if window.close() is blocked
+            setTimeout(() => {
+              window.location.href = "about:blank";
+            }, 500);
+          }, 1000);
+        });
       };
     }
   </script>
