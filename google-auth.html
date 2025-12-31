@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Google Code Sender</title>
+  <title>Google Code Copier</title>
   <style>
     body {
       font-family: sans-serif;
@@ -11,9 +11,9 @@
       padding: 2em;
     }
     button {
-      padding: 1em 1.5em;
-      font-size: 1.2em;
-      margin-top: 2em;
+      padding: 0.9em 1.4em;
+      font-size: 1.1em;
+      margin-top: 1em;
       cursor: pointer;
     }
     #codeBox {
@@ -28,37 +28,58 @@
 </head>
 <body>
   <h2>✅ Google Login Complete</h2>
-  <p>Tap the button to send your login code back to Unity:</p>
+  <p>Tap the button to copy your login code:</p>
 
   <div id="codeBox">Loading...</div>
-  <button id="sendBtn">🚀 Send Code to Unity</button>
+  <button id="copyBtn">Loading...</button>
+
+  <!-- Hidden textarea for fallback -->
+  <textarea id="copyArea" style="position:absolute; left:-9999px;"></textarea>
 
   <script>
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
     const codeBox = document.getElementById("codeBox");
-    const sendBtn = document.getElementById("sendBtn");
+    const copyBtn = document.getElementById("copyBtn");
+    const copyArea = document.getElementById("copyArea");
 
-    // Replace this with your Unity app scheme
-    const unityAppScheme = "myunityapp://login?code=";
+    // Detect iOS
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+    // Set button text based on device
+    copyBtn.textContent = isIOS ? "iOS" : "Nothing";
+
+    function fallbackCopy(text) {
+      copyArea.value = text;
+      copyArea.select();
+      copyArea.setSelectionRange(0, 99999); // mobile support
+      document.execCommand("copy");
+    }
+
+    async function copyText(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+          await navigator.clipboard.writeText(text);
+          return true;
+        } catch (e) {}
+      }
+      fallbackCopy(text);
+      return true;
+    }
 
     if (!code) {
       codeBox.textContent = "❌ No code found in URL.";
-      sendBtn.disabled = true;
+      copyBtn.disabled = true;
     } else {
       codeBox.textContent = code;
 
-      sendBtn.onclick = () => {
-        // Build deep link URL
-        const deepLink = unityAppScheme + encodeURIComponent(code);
+      copyBtn.onclick = async () => {
+        await copyText(code);
 
-        // Redirect user to Unity app
-        window.location.href = deepLink;
-
-        // Optional: fallback message for browsers that block the link
+        copyBtn.textContent = "✅ Copied!";
         setTimeout(() => {
-          alert("If nothing happened, copy this code manually:\n\n" + code);
-        }, 500);
+          copyBtn.textContent = isIOS ? "iOS" : "Nothing";
+        }, 1000);
       };
     }
   </script>
