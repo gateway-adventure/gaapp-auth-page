@@ -3,115 +3,72 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Return to App</title>
-
+  <title>Login Complete</title>
   <style>
     body {
-      font-family: system-ui, sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
       height: 100vh;
       margin: 0;
-      background: #fafafa;
+      background: #ffffff;
       text-align: center;
     }
 
-    h2 {
-      margin-bottom: 1em;
-    }
-
-    #mainBtn {
-      padding: 1em 2em;
-      font-size: 1.2em;
-      border-radius: 10px;
+    button {
+      font-size: 1.1em;
+      padding: 0.9em 1.6em;
+      border-radius: 8px;
       border: none;
       background: #1a73e8;
       color: white;
       cursor: pointer;
     }
 
-    #mainBtn:disabled {
+    button:disabled {
       background: #aaa;
-      cursor: default;
+      cursor: not-allowed;
     }
 
-    /* Manual help button */
-    #helpBtn {
-      position: fixed;
-      bottom: 12px;
-      left: 12px;
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      border: none;
-      background: #ddd;
-      font-size: 18px;
-      cursor: pointer;
-    }
-
-    #codeBox {
-      display: none;
+    p {
       margin-top: 1em;
-      padding: 1em;
-      background: #eee;
-      border-radius: 8px;
-      user-select: all;
-      word-break: break-word;
-      max-width: 90%;
+      color: #555;
+      font-size: 0.95em;
     }
   </style>
 </head>
-
 <body>
-  <h2>✅ Login Complete</h2>
 
-  <button id="mainBtn">Get Code & Return to App</button>
-
-  <div id="codeBox"></div>
-
-  <button id="helpBtn" title="Manual copy help">❔</button>
+  <button id="copyBtn">Get Code</button>
+  <p>Return to the app after copying</p>
 
   <script>
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
-
-    const mainBtn = document.getElementById("mainBtn");
-    const helpBtn = document.getElementById("helpBtn");
-    const codeBox = document.getElementById("codeBox");
+    const btn = document.getElementById("copyBtn");
 
     if (!code) {
-      mainBtn.disabled = true;
-      mainBtn.textContent = "No Code Found";
-      return;
+      btn.textContent = "No Code Found";
+      btn.disabled = true;
+    } else {
+      btn.onclick = () => {
+        navigator.clipboard.writeText(code).then(() => {
+          btn.textContent = "Copied ✓";
+
+          setTimeout(() => {
+            window.close();
+
+            // Fallback if window.close is blocked
+            setTimeout(() => {
+              window.location.href = "about:blank";
+            }, 500);
+          }, 800);
+        });
+      };
     }
-
-    codeBox.textContent = code;
-
-    // Main copy + close flow
-    mainBtn.onclick = async () => {
-      try {
-        await navigator.clipboard.writeText(code);
-      } catch {}
-
-      mainBtn.textContent = "Copied! Returning…";
-
-      setTimeout(() => {
-        window.close();
-
-        // Fallback if close is blocked
-        setTimeout(() => {
-          window.location.replace("about:blank");
-        }, 300);
-      }, 600);
-    };
-
-    // Manual reveal
-    helpBtn.onclick = () => {
-      codeBox.style.display = "block";
-      helpBtn.disabled = true;
-    };
   </script>
+
 </body>
 </html>
