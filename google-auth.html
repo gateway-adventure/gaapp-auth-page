@@ -17,44 +17,52 @@
       cursor: pointer;
     }
     #codeBox {
+      display: none; /* hidden by default */
       font-size: 1.2em;
       margin-top: 1em;
       word-break: break-word;
       background: #f0f0f0;
       padding: 1em;
       border-radius: 6px;
+      user-select: all;
     }
   </style>
 </head>
 <body>
   <h2>✅ Google Login Complete</h2>
-  <p>Click below to copy your login code and paste it into Unity:</p>
-  <div id="codeBox">Loading...</div>
+  <p>Copy your login code and paste it into Unity.</p>
+
+  <button id="showBtn">👁 Show Code (Manual Copy)</button>
+  <div id="codeBox"></div>
   <button id="copyBtn">📋 Copy Code</button>
 
   <script>
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
+
     const codeBox = document.getElementById("codeBox");
     const copyBtn = document.getElementById("copyBtn");
+    const showBtn = document.getElementById("showBtn");
 
     if (!code) {
+      codeBox.style.display = "block";
       codeBox.textContent = "❌ No code found in URL.";
       copyBtn.disabled = true;
+      showBtn.disabled = true;
     } else {
       codeBox.textContent = code;
+
+      showBtn.onclick = () => {
+        codeBox.style.display = "block";
+        showBtn.disabled = true;
+      };
+
       copyBtn.onclick = () => {
         navigator.clipboard.writeText(code).then(() => {
           copyBtn.textContent = "✅ Copied!";
           setTimeout(() => {
             copyBtn.textContent = "📋 Copy Code";
-            window.close();
-
-            // Fallback if window.close() is blocked
-            setTimeout(() => {
-              window.location.href = "about:blank";
-            }, 500);
-          }, 1000);
+          }, 1500);
         });
       };
     }
